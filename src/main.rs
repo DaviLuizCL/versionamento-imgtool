@@ -1,6 +1,5 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::collections::HashMap;
 
 use anyhow::Result;
 use clap::Parser;
@@ -157,25 +156,23 @@ fn process_image(path: &Path, args: &Cli) -> Result<Option<ImageReport>> {
 
     let output_path = build_output_path(path, &args.output, new_format);
 
-    // Codifica e salva imagem de saída
-    let mut out_buf: Vec<u8> = Vec::new();
+    // Cria arquivo de saída e escreve a imagem nele (File implementa Write + Seek)
+    let mut output_file = fs::File::create(&output_path)?;
 
     match new_format {
         "jpg" | "jpeg" => {
-            img.write_to(&mut out_buf, ImageFormat::Jpeg)?;
+            img.write_to(&mut output_file, ImageFormat::Jpeg)?;
         }
         "png" => {
-            img.write_to(&mut out_buf, ImageFormat::Png)?;
+            img.write_to(&mut output_file, ImageFormat::Png)?;
         }
         other => {
             eprintln!(
                 "Formato de saída não suportado ({other}), usando PNG como fallback."
             );
-            img.write_to(&mut out_buf, ImageFormat::Png)?;
+            img.write_to(&mut output_file, ImageFormat::Png)?;
         }
     }
-
-    fs::write(&output_path, &out_buf)?;
 
     let new_size = fs::metadata(&output_path)?.len();
 
